@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Library_Manangement_System - Group 13</title>
+<style>
+:root{--bg:#e8ecf3;--card:#fff;--ink:#17202e;--mute:#5d677a;--line:#d5dbe6;--acc:#243b6b;--onacc:#fff;--stamp:#b4231a;--ok:#1d6b4a;--row:#f3f5f9;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10141c;--card:#1a212d;--ink:#e8ecf4;--mute:#97a2b6;--line:#2c3647;--acc:#8fb0ff;--onacc:#10141c;--stamp:#ff7b6e;--ok:#5fd0a0;--row:#202938}}
+:root[data-theme="dark"]{--bg:#10141c;--card:#1a212d;--ink:#e8ecf4;--mute:#97a2b6;--line:#2c3647;--acc:#8fb0ff;--onacc:#10141c;--stamp:#ff7b6e;--ok:#5fd0a0;--row:#202938}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:920px;margin:0 auto;padding:20px 16px 48px}
+h1{font:700 2rem/1.15 Georgia,"Times New Roman",serif;margin:8px 0 4px}
+h2{font:700 1.2rem/1.3 Georgia,serif;margin:0 0 12px}
+.sub{color:var(--mute);margin:0 0 18px}
+.stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:8px 14px}
+.stat b{display:block;font:700 1.4rem Georgia,serif;font-variant-numeric:tabular-nums}
+.stat span{color:var(--mute);font-size:.85rem}
+.stat.late b{color:var(--stamp)}
+nav{display:flex;gap:4px;border-bottom:2px solid var(--line);margin-bottom:16px;overflow-x:auto}
+nav button{background:none;border:0;border-bottom:3px solid transparent;margin-bottom:-2px;padding:10px 14px;font:inherit;color:var(--mute);cursor:pointer;white-space:nowrap}
+nav button[aria-selected="true"]{color:var(--acc);border-color:var(--acc);font-weight:600}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:18px;margin-bottom:16px}
+form{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;align-items:end}
+label{display:grid;gap:4px;font-size:.9rem;color:var(--mute)}
+input,select{font:inherit;padding:9px 10px;border:1px solid var(--line);border-radius:5px;background:var(--bg);color:var(--ink);width:100%}
+button.go,button.ret{font:inherit;font-weight:600;border:0;border-radius:5px;background:var(--acc);color:var(--onacc);padding:10px 16px;cursor:pointer}
+button.ret{padding:5px 12px}
+button:disabled{opacity:.5;cursor:not-allowed}
+:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:.85rem;color:var(--mute);font-weight:600}
+tbody tr:nth-child(even){background:var(--row)}
+td.wrap{white-space:normal;min-width:160px}
+.stamp{display:inline-block;border:2px solid var(--stamp);color:var(--stamp);border-radius:4px;padding:1px 8px;font:700 .9rem ui-monospace,Menlo,Consolas,monospace;transform:rotate(-2deg)}
+.empty{color:var(--mute);padding:14px 0;margin:0}
+#msg{min-height:1.5em;font-weight:600;margin:0 0 12px}
+#msg.ok{color:var(--ok)}#msg.bad{color:var(--stamp)}
+.none{display:none}
+</style>
+</head>
+<body>
+<main>
+<h1>Library_Manangement_System - Group 13</h1>
+<p class="sub">Add books, lend them for 14 days, and see what is overdue. Everything is saved in this browser.</p>
+<div class="stats" id="stats"></div>
+<p id="msg" role="status"></p>
+<nav role="tablist" id="tabs">
+<button role="tab" data-tab="catalog" aria-selected="true">Catalog</button>
+<button role="tab" data-tab="lend" aria-selected="false">Issue and return</button>
+<button role="tab" data-tab="issued" aria-selected="false">Issued books</button>
+<button role="tab" data-tab="overdue" aria-selected="false">Overdue books</button>
+</nav>
+
+<section id="catalog">
+<div class="card"><h2>Add a book</h2>
+<form id="addForm" novalidate>
+<label>Title<input id="title" maxlength="99" autocomplete="off"></label>
+<label>Author<input id="author" maxlength="49" autocomplete="off"></label>
+<label>Copies (1–1000)<input id="copies" type="number" min="1" max="1000" value="1"></label>
+<button class="go" type="submit">Add book</button>
+</form></div>
+<div class="card"><h2>All books</h2><div class="scroll" id="bookTable"></div></div>
+</section>
+
+<section id="lend" class="none">
+<div class="card"><h2>Issue a book</h2>
+<form id="issueForm" novalidate>
+<label>Book<select id="bookSel"></select></label>
+<label>Borrower name<input id="borrower" maxlength="49" autocomplete="off"></label>
+<button class="go" type="submit" id="issueBtn">Issue book</button>
+</form></div>
+<div class="card"><h2>Return a book</h2><div class="scroll" id="returnTable"></div></div>
+</section>
+
+<section id="issued" class="none"><div class="card"><h2>Currently issued books</h2><div class="scroll" id="issuedTable"></div></div></section>
+<section id="overdue" class="none"><div class="card"><h2>Overdue books</h2><div class="scroll" id="overdueTable"></div></div></section>
+</main>
+
+<script>
+const KEY='library-data-v1', MAX_BOOKS=200, MAX_ISSUES=500, MAX_COPIES=1000, LOAN_DAYS=14;
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* ---- data: { books:[{id,title,author,total,avail}], issues:[{id,bookId,name,due,returned}] } ---- */
+let S={books:[],issues:[]};
+let fresh=true;   /* true when nothing has been saved in this browser yet */
+try{
+  const raw=localStorage.getItem(KEY); fresh=(raw===null);
+  const r=JSON.parse(raw);
+  if(r&&Array.isArray(r.books)&&Array.isArray(r.issues)&&r.books.length<=MAX_BOOKS&&r.issues.length<=MAX_ISSUES) S=r;
+}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S));return true}catch(e){return false}};
+
+/* ---- sample books: added only the first time the page is opened in a browser ---- */
+const SAMPLE=[
+  ['Programming in ANSI C','E. Balagurusamy',4],
+  ['Let Us C','Yashavant Kanetkar',5],
+  ['The C Programming Language','Brian Kernighan and Dennis Ritchie',3],
+  ['Introduction to Algorithms','Thomas H. Cormen',2],
+  ['Clean Code','Robert C. Martin',3],
+  ['Database System Concepts','Abraham Silberschatz',3],
+  ['Digital Logic and Computer Design','M. Morris Mano',4],
+  ['Wings of Fire','A. P. J. Abdul Kalam',6],
+  ['Malgudi Days','R. K. Narayan',4],
+  ['The God of Small Things','Arundhati Roy',2]
+];
+/* (sample books and loans are created further down, once the date helpers exist) */
+
+/* ---- dates are kept as YYYY-MM-DD text, so comparing text compares dates ---- */
+const pad=n=>String(n).padStart(2,'0');
+const iso=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const today=()=>iso(new Date());
+const dueDate=()=>{const d=new Date();d.setDate(d.getDate()+LOAN_DAYS);return iso(d)};
+const show=s=>s.split('-').reverse().join('-');
+const daysLate=s=>Math.round((new Date(today()+'T12:00')-new Date(s+'T12:00'))/864e5);
+const book=id=>S.books.find(b=>b.id===id);
+
+/* ---- first visit only: sample books plus a few sample loans (some already overdue) ---- */
+const daysFromToday=n=>{const d=new Date();d.setDate(d.getDate()+n);return iso(d)};
+if(fresh&&!S.books.length){
+  S.books=SAMPLE.map((b,i)=>({id:i+1,title:b[0],author:b[1],total:b[2],avail:b[2]}));
+  /* [bookId, borrower, due date in days from today (negative = past due), returned?] */
+  [[1,'Aarav Nair',-9,0],[4,'Meera Menon',-3,0],[8,'Rahul Krishnan',-21,0],
+   [2,'Sneha Pillai',5,0],[5,'Arjun Das',11,0],[3,'Divya Iyer',-30,1]
+  ].forEach((x,i)=>{
+    S.issues.push({id:i+1,bookId:x[0],name:x[1],due:daysFromToday(x[2]),returned:!!x[3]});
+    if(!x[3]) book(x[0]).avail--;
+  });
+  save();
+}
+
+function say(t,bad){const m=$('#msg');m.textContent=t;m.className=bad?'bad':'ok'}
+function done(t){ if(save()) say(t); else say(t+' (Warning: this browser would not save it.)',true); render(); }
+
+/* ---- actions (same rules as the C program) ---- */
+$('#addForm').addEventListener('submit',e=>{
+  e.preventDefault();
+  const title=$('#title').value.trim(), author=$('#author').value.trim(), n=Number($('#copies').value);
+  if(S.books.length>=MAX_BOOKS) return say('Catalog is full. Cannot add more books.',true);
+  if(!title) return say('Enter a title.',true);
+  if(!author) return say('Enter an author.',true);
+  if(!Number.isInteger(n)||n<1||n>MAX_COPIES) return say('Copies must be a whole number from 1 to '+MAX_COPIES+'.',true);
+  S.books.push({id:S.books.length+1,title,author,total:n,avail:n});
+  e.target.reset(); $('#copies').value=1;
+  done('Added “'+title+'”.');
+});
+
+$('#issueForm').addEventListener('submit',e=>{
+  e.preventDefault();
+  const b=book(Number($('#bookSel').value)), name=$('#borrower').value.trim();
+  if(S.issues.length>=MAX_ISSUES) return say('Issue records are full. Cannot issue more books.',true);
+  if(!b) return say('Pick a book.',true);
+  if(b.avail<=0) return say('“'+b.title+'” is unavailable. All copies are issued.',true);
+  if(!name) return say('Enter the borrower’s name.',true);
+  const due=dueDate();
+  S.issues.push({id:S.issues.length+1,bookId:b.id,name,due,returned:false});
+  b.avail--; $('#borrower').value='';
+  done('Issued “'+b.title+'” to '+name+'. Due '+show(due)+'.');
+});
+
+document.addEventListener('click',e=>{
+  const r=e.target.closest('[data-ret]');
+  if(r){
+    const rec=S.issues.find(i=>i.id===Number(r.dataset.ret));
+    if(!rec||rec.returned) return say('This issue record is already marked as returned.',true);
+    rec.returned=true;
+    const b=book(rec.bookId); if(b) b.avail++;
+    return done('“'+(b?b.title:'Book')+'” returned by '+rec.name+'. Thank you!');
+  }
+  const t=e.target.closest('[data-tab]');
+  if(t){
+    document.querySelectorAll('[data-tab]').forEach(x=>x.setAttribute('aria-selected',x===t));
+    ['catalog','lend','issued','overdue'].forEach(id=>$('#'+id).classList.toggle('none',id!==t.dataset.tab));
+  }
+});
+
+/* ---- drawing ---- */
+function table(head,rows,emptyText){
+  if(!rows.length) return '<p class="empty">'+emptyText+'</p>';
+  return '<table><thead><tr>'+head.map(h=>'<th>'+h+'</th>').join('')+'</tr></thead><tbody>'+rows.join('')+'</tbody></table>';
+}
+const stamp=d=>'<span class="stamp">'+show(d)+'</span>';
+const issueRow=(i,extra)=>{const b=book(i.bookId);
+  return '<tr><td>'+i.id+'</td><td class="wrap">'+esc(b?b.title:'(unknown)')+'</td><td>'+esc(i.name)+'</td><td>'+stamp(i.due)+'</td>'+extra+'</tr>'};
+
+function render(){
+  const out=S.issues.filter(i=>!i.returned), late=out.filter(i=>i.due<today());
+  $('#stats').innerHTML=
+    '<div class="stat"><b>'+S.books.length+'</b><span>titles</span></div>'+
+    '<div class="stat"><b>'+out.length+'</b><span>copies out</span></div>'+
+    '<div class="stat late"><b>'+late.length+'</b><span>overdue</span></div>';
+
+  $('#bookTable').innerHTML=table(['ID','Title','Author','Total','Available'],
+    S.books.map(b=>'<tr><td>'+b.id+'</td><td class="wrap">'+esc(b.title)+'</td><td class="wrap">'+esc(b.author)+'</td><td>'+b.total+'</td><td>'+b.avail+'</td></tr>'),
+    'No books yet. Add your first one above.');
+
+  const sel=$('#bookSel'), keep=sel.value, open=S.books.filter(b=>b.avail>0);
+  sel.innerHTML=open.length?open.map(b=>'<option value="'+b.id+'">'+esc(b.title)+' ('+b.avail+' left)</option>').join(''):'<option value="">No copies available</option>';
+  if(open.some(b=>String(b.id)===keep)) sel.value=keep;
+  $('#issueBtn').disabled=!open.length;
+
+  const head=['ID','Book','Borrower','Due'];
+  $('#returnTable').innerHTML=table(head.concat(['']),out.map(i=>issueRow(i,'<td><button class="ret" data-ret="'+i.id+'">Return</button></td>')),'Nothing is out right now.');
+  $('#issuedTable').innerHTML=table(head,out.map(i=>issueRow(i,'')),'No books are currently issued.');
+  $('#overdueTable').innerHTML=table(head.concat(['Days late']),late.map(i=>issueRow(i,'<td>'+daysLate(i.due)+'</td>')),'No overdue books.');
+}
+render();
+</script>
+</body>
+</html>
